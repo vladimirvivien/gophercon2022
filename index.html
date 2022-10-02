@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>GopherCon22</title>
+
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/league.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="plugin/highlight/monokai.css">
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section><!-- Slide 1-->
+					<h3>System Programming for<br/>
+					Realtime Video Capture in Go</h3>
+					<p>GopherCon 2022</p>
+				</section>
+
+				<section data-background-image="img/facebg.png"><!--Slide 2-->
+					<p>
+						Vladimir Vivien 🇭🇹 <br/>
+						(@VladimirVivien) <br/>
+						Software engineer / author
+					</p>
+					<img src="img/book.png">
+				</section>
+
+				<section><!-- slide 3 -->
+					<h3>Goal</h3>
+					<p class="fragment fade-up">
+						To show that it is possible to use Go to capture image streams directly from video devices attached to a Linux machine.
+					</p>
+				</section>
+
+				<section>
+					<p>Something like </p>
+					<img class="r-frame" src="http://picam.lan:9090/stream">
+				</section>
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="plugin/notes/notes.js"></script>
+		<script src="plugin/markdown/markdown.js"></script>
+		<script src="plugin/highlight/highlight.js"></script>
+		<script>
+			Reveal.initialize({
+				hash: true,
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+</html>
