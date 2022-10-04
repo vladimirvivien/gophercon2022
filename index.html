@@ -32,16 +32,67 @@
 				</section>
 
 				<section><!-- slide 3 -->
-					<h3>Goal</h3>
+					<h3>Agenda</h3>
 					<p class="fragment fade-up">
-						To show that it is possible to use Go to capture image streams directly from video devices attached to a Linux machine.
+						To show how to use Go to stream video data directly from a video capture device attached to a Linux machine ...
 					</p>
 				</section>
 
-				<section>
-					<p>Something like </p>
-					<img class="r-frame" src="http://picam.lan:9090/stream">
+				<section><!-- slide 4 -->
+					<p>Something like 👇🏾 </p>
+					<img class="r-frame" src="http://picam.lan:9090/stream" title="Video stream" alt="Video stream from Raspberry Pi" onerror="this.onerror=null;this.src='img/nostream.png'">
 				</section>
+
+				<section data-background-image="img/masks.png"><!-- slide 3 -->
+					<h3>The origin story</h3>
+					<p>
+					COVID made me do it!
+					</p>
+				</section>
+				
+				<section data-background-image="img/masks.png"><!-- slide 5 -->
+					<img class="r-frame" src="img/wp-cam-shortage.png" title="Washington Post article" alt="Washington Post webcam shortage">
+				</section>
+
+				<section data-background-image="img/picam-bg.png"><!-- slide 6 -->
+					<p class="fragment fade-up" style="font-size:200%;text-shadow: 1px 1px 12px #000000;">
+						Build a webcam gadget with<br>
+						the Raspberry Pi + HQ cam
+					</p>
+					<p class="fragment fade-up" style="color:yellow; text-shadow: 1px 1px black;">
+						...using the Go programming language
+					</p>
+					<p class="fragment fade-down">
+						How hard can it be 🤷🏽‍♂️
+					</p>
+				</section>
+
+				<section data-background-image="img/picam-bg.png"><!-- slide 7 -->
+					<p class="fragment fade-in-then-semi-out">
+						A lot of C code
+					</p>
+					<p class="fragment fade-in-then-semi-out">
+						Linux device drivers
+					</p>
+					<p class="fragment fade-in-then-semi-out">
+						USB Video Class (UVC) drivers
+					</p>
+					<p class="fragment fade-in-then-semi-out">
+						Building UVC gadget drivers
+					</p>
+					<p class="fragment fade-in">
+						Video for Linux API v2 (V4L2)
+					</p>
+				</section>
+
+				<section data-background-image="img/picam-bg.png"><!-- slide 8 -->
+					<p class="fragment" style="font-size:150%; text-decoration-line: line-through;">
+						Build a webcam gadget
+					</p>
+					<p class="fragment fade-up" style="color:yellow; text-shadow: 1px 1px black;">
+						Use Go to capture video data using V4L2
+					</p>
+				</section>				
 			</div>
 		</div>
 
