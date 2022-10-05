@@ -55,15 +55,15 @@
 				</section>
 
 				<section data-background-image="img/picam-bg.png"><!-- slide 6 -->
-					<p class="fragment fade-up" style="font-size:200%;text-shadow: 1px 1px 12px #000000;">
-						Build a webcam gadget with<br>
-						the Raspberry Pi + HQ cam
+					<p class="fragment fade-up" style="font-size:150%;text-shadow: 1px 1px 12px #000000;">
+						Build a webcam gadget<br>
+						with the Raspberry Pi + HQ cam
 					</p>
-					<p class="fragment fade-up" style="color:yellow; text-shadow: 1px 1px black;">
-						...using the Go programming language
+					<p class="fragment fade-up" style="color:yellow; text-shadow: 1px 1px 12px black;">
+						...using the Go programming language.
 					</p>
 					<p class="fragment fade-down">
-						How hard can it be 🤷🏽‍♂️
+						How hard can it be? 🤷🏽‍♂️
 					</p>
 				</section>
 
@@ -81,18 +81,176 @@
 						Building UVC gadget drivers
 					</p>
 					<p class="fragment fade-in">
-						Video for Linux API v2 (V4L2)
+						Video for Linux API
 					</p>
 				</section>
 
-				<section data-background-image="img/picam-bg.png"><!-- slide 8 -->
+				<section data-background-image="img/cry.png"><!-- slide 8 -->
 					<p class="fragment" style="font-size:150%; text-decoration-line: line-through;">
 						Build a webcam gadget
 					</p>
-					<p class="fragment fade-up" style="color:yellow; text-shadow: 1px 1px black;">
-						Use Go to capture video data using V4L2
+					<p class="fragment fade-up" style="color:yellow; text-shadow: 1px 1px 12px black;">
+						Use Go to capture video data using video for Linux
 					</p>
-				</section>				
+				</section>	
+				
+				<section><!-- slide 9 -->
+					<h3>The Video for Linux API v2 (V4L2)</h3>
+					<p>
+					linuxtv.org
+					</p>
+				</section>
+
+				<section><!-- slide 10 -->
+					<p>
+					    Part of the Linux specs for media infrastructure
+					</p>
+				
+					<p class="fragment">
+						C APIs for device drivers and user-space apps
+					</p>
+
+					<p class="fragment">
+						User-space API defined as sequences of system calls
+					</p>
+				</section>
+
+				<section data-background-image="img/road-to-v4l2.png"><!-- slide 11 -->
+					<p style="font-size:150%; text-shadow: 1px 1px 12px black;">
+						From Go to V4L2
+					</p>
+					<p class="fragment">
+						Package
+						<code style="color:orange">golang.org/x/sys/unix</code> 
+					</p>
+					<p class="fragment">
+						Use
+						<code style="color:orange">cgo</code> 
+						to extract the V4L2 C types and values
+					</p>
+					<p class="fragment">
+						Use package
+						<code style="color:orange">unsafe</code> 
+						pass pointer values to V4L2 calls 
+					</p>
+				</section>
+				
+				<section> <!-- slide 12 -->
+					<p style="font-size:150%; text-shadow: 1px 1px 12px black;">
+						System calls to capture video
+					</p>
+					<p class="fragment">
+						<code style="color:orange">open</code>, <code style="color:orange">close</code> -- open/close device file descriptor
+					</p>
+					<p class="fragment">
+						<code style="color:orange">ioctl</code> -- sends control requests to device
+					</p>
+					<p class="fragment">
+						<code style="color:orange">mmap</code>, <code style="color:orange">munmap</code> -- maps/unmaps app's address space
+					</p>
+				</section>
+
+				<section> <!-- slide 13 -->
+					<p style="font-size:150%; text-shadow: 1px 1px 12px black;">
+						Let's capture a video frame
+					</p>
+				</section>
+
+				<section>
+					<p>First, define some needed V4L2 constants</p>
+					<pre><code class="language-go">
+const (
+    PixelFmtMJPEG       uint32 = C.V4L2_PIX_FMT_MJPEG
+    FieldAny            uint32 = C.V4L2_FIELD_ANY
+    FieldNone           uint32 = C.V4L2_FIELD_NONE
+    BufTypeVideoCapture uint32 = C.V4L2_BUF_TYPE_VIDEO_CAPTURE
+    BufTypeVideoOutput  uint32 = C.V4L2_BUF_TYPE_VIDEO_OUTPUT
+    BufTypeOverlay      uint32 = C.V4L2_BUF_TYPE_VIDEO_OVERLAY
+						
+    type PixFormat struct {
+        Width        uint32
+        Height       uint32
+        PixelFormat  uint32
+        Field        uint32
+		...
+	}
+)
+					</code></pre>
+				</section>
+
+				<section>
+					<p>Define an <code style="color:orange">ioctl</code> wrapper function</p>
+					<pre><code class="language-go">
+func ioctl(fd, req, arg uintptr) (err error) {
+	if _, _, errno := sys.Syscall(sys.SYS_IOCTL, fd, req, arg); errno != 0 {			     
+		return errno
+	}
+}
+					</code></pre>
+				</section>
+				
+				<section>
+					<p>Open the device to get file descriptor</p>
+<pre><code class="language-go">
+func main()
+    devFile, err := os.OpenFile(devName, sys.O_RDWR|sys.O_NONBLOCK, 0)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fd := devFile.Fd()
+    ...
+}
+</code></pre>					
+				</section>
+
+				<section>
+					<p>Set the video format</p>
+<pre><code>
+func main(){
+    ...
+    setFormat(fd, PixFormat{Width: 640, Height: 480, PixelFormat: PixelFmtMJPEG})
+}
+</code></pre>
+<pre><code>
+func setFormat(fd uintptr, pixFmt PixFormat) error {
+    var v4l2Fmt C.struct_v4l2_format
+    v4l2Fmt._type = C.uint(BufTypeVideoCapture)
+    *(*C.struct_v4l2_pix_format)(unsafe.Pointer(&v4l2Fmt.fmt[0])) = *(*C.struct_v4l2_pix_format)(unsafe.Pointer(&pixFmt))
+	
+    // send command
+    if err := ioctl(fd, C.VIDIOC_S_FMT, uintptr(unsafe.Pointer(&v4l2Fmt))); err != nil {
+        return err
+    }
+    return nil
+}
+</code></pre>
+				</section>
+
+				<section>
+					<p>Request device buffer setup</p>
+<pre><code>
+func main() {
+	...
+    reqBuffers(fd, 1)
+}
+</code></pre>
+<pre><code>
+	func reqBuffers(fd uintptr, count uint32) error {
+		var reqbuf C.struct_v4l2_requestbuffers
+		reqbuf.count = C.uint(count)
+		reqbuf._type = C.uint(BufTypeVideoCapture)
+		reqbuf.memory = C.uint(StreamMemoryTypeMMAP)
+	
+		if err := ioctl(fd, C.VIDIOC_REQBUFS, uintptr(unsafe.Pointer(&reqbuf))); err != nil {
+			return err
+		}
+		return nil
+	}	
+</code></pre>
+				</section>
+
+				<section></section>
+				
 			</div>
 		</div>
 
