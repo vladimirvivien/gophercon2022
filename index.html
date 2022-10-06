@@ -152,20 +152,20 @@
 
 				<section> <!-- slide 13 -->
 					<p style="font-size:150%; text-shadow: 1px 1px 12px black;">
-						Let's capture a video frame
+						Let's see how to capture a video frame with Go
 					</p>
 				</section>
 
-				<section>
-					<p>First, define some needed V4L2 constants</p>
+				<section><!-- slide 14 -->
+					<p>First, let's setup some V4L2 constants</p>
 					<pre><code class="language-go">
+import sys "golang.org/x/sys/unix"
+
 const (
     PixelFmtMJPEG       uint32 = C.V4L2_PIX_FMT_MJPEG
     FieldAny            uint32 = C.V4L2_FIELD_ANY
     FieldNone           uint32 = C.V4L2_FIELD_NONE
     BufTypeVideoCapture uint32 = C.V4L2_BUF_TYPE_VIDEO_CAPTURE
-    BufTypeVideoOutput  uint32 = C.V4L2_BUF_TYPE_VIDEO_OUTPUT
-    BufTypeOverlay      uint32 = C.V4L2_BUF_TYPE_VIDEO_OVERLAY
 						
     type PixFormat struct {
         Width        uint32
@@ -178,7 +178,7 @@ const (
 					</code></pre>
 				</section>
 
-				<section>
+				<section><!-- slide 15 -->
 					<p>Define an <code style="color:orange">ioctl</code> wrapper function</p>
 					<pre><code class="language-go">
 func ioctl(fd, req, arg uintptr) (err error) {
@@ -189,11 +189,11 @@ func ioctl(fd, req, arg uintptr) (err error) {
 					</code></pre>
 				</section>
 				
-				<section>
+				<section> <!-- slide 16 -->
 					<p>Open the device to get file descriptor</p>
 <pre><code class="language-go">
 func main()
-    devFile, err := os.OpenFile(devName, sys.O_RDWR|sys.O_NONBLOCK, 0)
+    devFile, err := os.OpenFile("/dev/video0", sys.O_RDWR|sys.O_NONBLOCK, 0)
     if err != nil {
         log.Fatal(err)
     }
@@ -203,8 +203,8 @@ func main()
 </code></pre>					
 				</section>
 
-				<section>
-					<p>Set the video format</p>
+				<section> <!-- slide 17 -->
+					<p>Configure video data format</p>
 <pre><code>
 func main(){
     ...
@@ -226,7 +226,7 @@ func setFormat(fd uintptr, pixFmt PixFormat) error {
 </code></pre>
 				</section>
 
-				<section>
+				<section> <!-- slide 18 -->
 					<p>Request device buffer setup</p>
 <pre><code>
 func main() {
@@ -249,8 +249,182 @@ func main() {
 </code></pre>
 				</section>
 
-				<section></section>
+				<section data-background-image="img/picard-bg.png">
+					<p style="font-size: 150%">Oh yes, there are more steps.</p>
+				</section>
+
+				<section><!-- slide 19 -->
+					<p>Map device memory for video data input</p>
+<pre><code>
+func main() {
+	...
+	data, _ := mmapBuffer(fd, 0)
+}
+</code></pre>
+<pre><code>
+func mmapBuffer(fd uintptr, idx uint32) ([]byte, error) {
+    var v4l2Buf C.struct_v4l2_buffer
+    v4l2Buf._type = C.uint(BufTypeVideoCapture)
+    v4l2Buf.memory = C.uint(StreamMemoryTypeMMAP)
+    v4l2Buf.index = C.uint(idx)
+	
+    if err := ioctl(fd, C.VIDIOC_QUERYBUF, uintptr(unsafe.Pointer(&v4l2Buf))); err != nil {
+        return nil, err
+    }
+	
+    bufSvc := *(*BufferService)(unsafe.Pointer(&v4l2Buf.m[0]))
+	
+    mbuf, err := sys.Mmap(int(fd), int64(bufSvc.Offset), int(v4l2Buf.length), sys.PROT_READ|sys.PROT_WRITE, sys.MAP_SHARED)
+    if err != nil {
+        return nil, err
+    }
+	
+    return mbuf, nil
+}	
+</code></pre>
+				</section>
+
+				<section><!-- slide 20 -->
+					<p>Queue device buffer for data capature</p>
+
+<pre><code>
+func main() {
+    ...
+	queueBuff(fd, 0)
+}
+</code></pre>
+<pre><code>
+func queueBuff(fd uintptr, idx uint32) error {
+    var v4l2Buf C.struct_v4l2_buffer
+    v4l2Buf._type = C.uint(BufTypeVideoCapture)
+    v4l2Buf.memory = C.uint(StreamMemoryTypeMMAP)
+    v4l2Buf.index = C.uint(idx)
+	
+    if err := ioctl(fd, C.VIDIOC_QBUF, uintptr(unsafe.Pointer(&v4l2Buf))); err != nil {
+        return err
+    }
+    return nil
+}	
+</code></pre>
+				</section>
+
+				<section><!-- slide 21 -->
+					<p>Request to start video streaming</p>
+<pre><code>
+func main() {
+    ...
+    startStreaming(fd)
+}
+</code></pre>
+<pre><code>
+func startStreaming(fd uintptr) error {
+    bufType := C.uint(BufTypeVideoCapture)
+    if err := ioctl(fd, C.VIDIOC_STREAMON, uintptr(unsafe.Pointer(&bufType))); err != nil {
+        return err
+    }
+    return nil
+}
+</code></pre>
+				</section>
+
+				<section><!-- slide 22 -->
+					<p>Dequeue the filled buffer</p>
+<pre><code>
+func main(){
+    ...
+    n, _ := dequeueBuffer(fd, 0)
+}
+</code></pre>
+<pre><code>
+func dequeueBuffer(fd uintptr) (uint32, error) {
+    var v4l2Buf C.struct_v4l2_buffer
+    v4l2Buf._type = C.uint(BufTypeVideoCapture)
+    v4l2Buf.memory = C.uint(StreamMemoryTypeMMAP)
+	
+    if err := ioctl(fd, C.VIDIOC_DQBUF, uintptr(unsafe.Pointer(&v4l2Buf))); err != nil {
+        return 0, err
+    }
+    return uint32(v4l2Buf.bytesused), nil
+}
+</code></pre>
+				</section>
 				
+				<section><!-- slide 23 -->
+					<p>Finally, process the video data</p>
+				
+<pre><code>
+func main() {
+    jpgFile, err := os.Create("capture.jpg")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer jpgFile.Close()
+    if _, err := jpgFile.Write(data[:n]); err != nil {
+        log.Fatalf("failed to save file: %s", err)
+    }
+}
+</code></pre>
+				</section>
+
+				<section data-background-image="img/cry.png"><!-- slide 24-->
+					<p class="fragment">No less then 10 steps (with some omitted)</p>
+					<p class="fragment">Requires understanding of V4L2 control commands </p>
+					<p class="fragment">Commands must be invoked in a prescribed order</p>
+					<p class="fragment">Device driver errors can be cryptic</p>
+					<p class="fragment">Can we do better?</p>
+				</section>
+
+				<section>
+					<table><tr>
+						<td style="width: 50%;"><img class="r-frame" src="img/dance.gif"></td>
+						<td style="width:50%;vertical-align: top;">
+							<p class="fragment">github.com/vladimirvivien/<span style="color:orange;font: size 100px;">Go4VL</span></p>
+							<p class="fragment">Exposes an idiomatic Go API with
+						with primitives that hide the complexities of working with V4L2.
+						</p></td>
+					</tr></table>
+				</section>
+
+				<section>
+					<p>Capture a frame with Go4VL</p>
+<pre><code>
+import "github.com/vladimirvivien/go4vl/device"
+
+func main() {
+    // open and configure device
+    dev, err := device.Open(
+        "/dev/video0", 
+        device.WithPixFormat(v4l2.PixFormat{PixelFormat: v4l2.PixelFmtMJPEG, Width: 640, Height: 480}),
+        device.WithBufferSize(1),
+    )
+    defer dev.Close()
+
+    // start capturing
+    if err := dev.Start(context.TODO()); err != nil {
+        log.Fatal(err)
+    }
+
+    // grab frame
+    frame := <-dev.GetOutput()
+    
+    // process frame
+    file, err := os.Create("pic.jpg")
+    defer file.Close()
+    if _, err := file.Write(frame); err != nil {
+         log.Fatal(err)
+    }
+}
+
+</code></pre>
+				</section>
+
+				<section>
+					<p>Demo setup</p>
+					<img src="img/demo-setup.png">
+				</section>
+
+
+
 			</div>
 		</div>
 
