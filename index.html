@@ -19,7 +19,7 @@
 				<section><!-- Slide 1-->
 					<h3>System Programming for<br/>
 					Realtime Video Capture in Go</h3>
-					<p>GopherCon 2022</p>
+					<p>Vladimir Vivien</p>
 				</section>
 
 				<section data-background-image="img/facebg.png"><!--Slide 2-->
@@ -39,7 +39,7 @@
 				</section>
 
 				<section><!-- slide 4 -->
-					<p>Something like 👇🏾 </p>
+					<p>To build something like 👇🏾 </p>
 					<img class="r-frame" src="http://picam.lan:9090/stream" title="Video stream" alt="Video stream from Raspberry Pi" onerror="this.onerror=null;this.src='img/nostream.png'">
 				</section>
 
@@ -55,8 +55,8 @@
 				</section>
 
 				<section data-background-image="img/picam-bg.png"><!-- slide 6 -->
-					<p class="fragment fade-up" style="font-size:150%;text-shadow: 1px 1px 12px #000000;">
-						Build a webcam gadget<br>
+					<p style="font-size:150%;text-shadow: 1px 1px 12px #000000;">
+						Build a USB webcam gadget<br>
 						with the Raspberry Pi + HQ cam
 					</p>
 					<p class="fragment fade-up" style="color:yellow; text-shadow: 1px 1px 12px black;">
@@ -67,7 +67,7 @@
 					</p>
 				</section>
 
-				<section data-background-image="img/picam-bg.png"><!-- slide 7 -->
+				<section data-background-image="img/cry.png"><!-- slide 7 -->
 					<p class="fragment fade-in-then-semi-out">
 						A lot of C code
 					</p>
@@ -86,8 +86,8 @@
 				</section>
 
 				<section data-background-image="img/cry.png"><!-- slide 8 -->
-					<p class="fragment" style="font-size:150%; text-decoration-line: line-through;">
-						Build a webcam gadget
+					<p style="font-size:150%; text-decoration-line: line-through;">
+						Build a USB webcam gadget
 					</p>
 					<p class="fragment fade-up" style="color:yellow; text-shadow: 1px 1px 12px black;">
 						Use Go to capture video data using video for Linux
@@ -111,7 +111,7 @@
 					</p>
 
 					<p class="fragment">
-						User-space API defined as sequences of system calls
+						Defines system calls to interact with devices
 					</p>
 				</section>
 
@@ -126,7 +126,7 @@
 					<p class="fragment">
 						Use
 						<code style="color:orange">cgo</code> 
-						to extract the V4L2 C types and values
+						to extract the C header types and values
 					</p>
 					<p class="fragment">
 						Use package
@@ -137,7 +137,7 @@
 				
 				<section> <!-- slide 12 -->
 					<p style="font-size:150%; text-shadow: 1px 1px 12px black;">
-						System calls to capture video
+						System calls that we need
 					</p>
 					<p class="fragment">
 						<code style="color:orange">open</code>, <code style="color:orange">close</code> -- open/close device file descriptor
@@ -159,7 +159,7 @@
 				<section><!-- slide 14 -->
 					<p>First, let's setup some V4L2 constants</p>
 					<pre><code class="language-go">
-import sys "golang.org/x/sys/unix"
+import "C"
 
 const (
     PixelFmtMJPEG       uint32 = C.V4L2_PIX_FMT_MJPEG
@@ -181,6 +181,8 @@ const (
 				<section><!-- slide 15 -->
 					<p>Define an <code style="color:orange">ioctl</code> wrapper function</p>
 					<pre><code class="language-go">
+import sys "golang.org/x/sys/unix"
+
 func ioctl(fd, req, arg uintptr) (err error) {
 	if _, _, errno := sys.Syscall(sys.SYS_IOCTL, fd, req, arg); errno != 0 {			     
 		return errno
@@ -249,8 +251,12 @@ func main() {
 </code></pre>
 				</section>
 
+				<section>
+					<img class="r-frame" src="img/picard-please.png">
+				</section>
+
 				<section data-background-image="img/picard-bg.png">
-					<p style="font-size: 150%">Oh yes, there are more steps.</p>
+					<p style="font-size: 150%">Oh no, there is much more ...</p>
 				</section>
 
 				<section><!-- slide 19 -->
@@ -376,17 +382,17 @@ func main() {
 
 				<section>
 					<table><tr>
-						<td style="width: 50%;"><img class="r-frame" src="img/dance.gif"></td>
-						<td style="width:50%;vertical-align: top;">
-							<p class="fragment">github.com/vladimirvivien/<span style="color:orange;font: size 100px;">Go4VL</span></p>
-							<p class="fragment">Exposes an idiomatic Go API with
-						with primitives that hide the complexities of working with V4L2.
+						<td style="width: 75%;"><img class="r-frame" src="img/dance.gif"></td>
+						<td style="vertical-align: top;">
+							<p>github.com/vladimirvivien/<span style="color:orange;font: size 100px;">Go4VL</span></p>
+							<p class="fragment">Exposes an idiomatic Go API
+						with primitives that hide the complexities of V4L2.
 						</p></td>
 					</tr></table>
 				</section>
 
 				<section>
-					<p>Capture a frame with Go4VL</p>
+					<p>Take a snopshot with Go4VL</p>
 <pre><code>
 import "github.com/vladimirvivien/go4vl/device"
 
@@ -419,12 +425,116 @@ func main() {
 				</section>
 
 				<section>
-					<p>Demo setup</p>
+					<p>Demo time!</p>
 					<img src="img/demo-setup.png">
 				</section>
 
+				<section>
+					<p>Taking multiple shots</p>
+<pre><code>
+func main() {
+    // open and configure device
+    dev, err := device.Open(
+        "/dev/video0", 
+        device.WithPixFormat(v4l2.PixFormat{PixelFormat: v4l2.PixelFmtMJPEG, Width: 640, Height: 480}),
+    )
+    defer dev.Close()
 
+    // start capturing
+    if err := dev.Start(context.TODO()); err != nil {
+        log.Fatal(err)
+    }
 
+    // capture 10 frames from output channel
+    totalFrames := 10
+    count := 0
+
+    for frame := range device.GetOutput() {
+        fileName := fmt.Sprintf("capture_%d.jpg", count)
+        file, err := os.Create(fileName)
+        if err != nil {
+             continue
+        }
+        if _, err := file.Write(frame); err != nil {
+            continue
+        }
+        if err := file.Close(); err != nil {
+            log.Printf("failed to close file %s: %s", fileName, err)
+        }
+        count++
+        if count >= totalFrames {
+            break
+        }
+        time.Sleep(1 * time.Second)
+    }
+}
+</code></pre>
+				</section>
+
+				<section>
+					<p>A streaming image server</p>
+<pre><code>
+var (
+	frames <-chan []byte
+)
+
+func main() {
+	camera, err := device.Open(
+		"/dev/video0",
+		device.WithPixFormat(v4l2.PixFormat{PixelFormat: v4l2.PixelFmtMJPEG, Width: 640, Height: 480}),
+	)
+	defer camera.Close()
+
+	if err := camera.Start(context.TODO()); err != nil {
+		log.Fatalf("camera start: %s", err)
+	}
+
+	frames = camera.GetOutput()
+
+	http.HandleFunc("/stream", imageServ)
+	log.Fatal(http.ListenAndServe(":9090", nil))
+}
+
+func imageServ(w http.ResponseWriter, req *http.Request) {
+	mimeWriter := multipart.NewWriter(w)
+	w.Header().Set("Content-Type", fmt.Sprintf("multipart/x-mixed-replace; boundary=%s", mimeWriter.Boundary()))
+	partHeader := make(textproto.MIMEHeader)
+	partHeader.Add("Content-Type", "image/jpeg")
+
+	var frame []byte
+	for frame = range frames {
+		partWriter, err := mimeWriter.CreatePart(partHeader)
+		if err != nil {
+			return
+		}
+
+		if _, err := partWriter.Write(frame); err != nil {
+			log.Printf("failed to write image: %s", err)
+		}
+	}
+}
+</code></pre>
+				</section>
+
+				<section>
+					<p>A webcam application</p>
+				</section>
+
+				<section>
+					<p>A webcam application with face detection</p>
+					<p style="font-size: 50%;">(Shout out to projects <span style="color:orange">pion</span> & <span style="color:orange">pigo</span>)</p>
+				</section>
+
+				<section>
+					<p style="font-size: 150%;">The possibilities</p>
+					<p class="fragment">Support majority of V4VL features</p>
+					<p class="fragment">Build a true USB webcam gadget</p>
+					<p class="fragment">Edge computing applications</p>
+				</section>
+
+				<section>
+					<h3>The end</h3>
+				</section>
 			</div>
 		</div>
 
