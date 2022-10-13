@@ -1,21 +1,17 @@
-# gophercon2022
-GopherCon 2022 - reveal.js presentation
+# Presentation - Realtime Video Capture on Linux with Go
+
+## Vladimir Vivien, GopherCon 2022
+
+See presentation [description](https://www.gophercon.com/agenda/speakers/1705583), for detail.
 
 ## Running the presetnation
 
-Download project repository files or clone the repo:
-
-```
-git clone https://github.com/vladimirvivien/gophercon2022
-```
-
-Next:
-From your web browser, open the `gophercon2022/index.html`.
+1. Download files from project directory
+2. From your web browser, file `index.html` (in project)
 
 Or, if you have Go installed:
 
 ```
-cd gophercon2022
 go run server.go
 ```
 
